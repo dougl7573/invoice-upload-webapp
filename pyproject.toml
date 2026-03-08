@@ -1,4 +1,6 @@
 [project]
+name = "invoice-upload-webapp"
+version = "0.1.0"
 requires-python = ">=3.11,<3.13"
 
 [project.scripts]
