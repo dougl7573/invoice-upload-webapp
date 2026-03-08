@@ -3,18 +3,21 @@
 Flask backend for Invoice Upload Web App (Lesson 2.4).
 - POST /api/process: accept PDF, return extracted invoice JSON
 - POST /api/save: accept invoice JSON, transform and save to Airtable
-- GET /: serve frontend
+- GET /api/health: health check (for Vercel serverless)
+- GET /: serve frontend (or rely on Vercel public/ for static)
 """
 import os
 import sys
 import tempfile
 
-from dotenv import load_dotenv
-from flask import Flask, jsonify, request, send_from_directory
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+except Exception:
+    pass
 
-# Load .env from backend/ or project root
-load_dotenv()
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+from flask import Flask, jsonify, request, send_from_directory
 
 # Use local pipeline copies (backend is self-contained for Vercel deployment)
 from transform_invoice import transform_invoice_for_airtable
@@ -28,7 +31,11 @@ app = Flask(__name__, static_folder=None)
 from flask_cors import CORS
 CORS(app)
 
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
+# On Vercel, static files are served from public/; Flask only needs to serve if public/ isn't used
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(_BACKEND_DIR, "..", "frontend")
+if not os.path.isdir(FRONTEND_DIR):
+    FRONTEND_DIR = os.path.join(os.getcwd(), "public")
 
 
 @app.route("/api/process", methods=["POST"])
@@ -52,6 +59,12 @@ def api_process():
         return jsonify(invoice)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    """Health check for Vercel serverless (avoids cold-start crash on first API hit)."""
+    return jsonify({"ok": True})
 
 
 @app.route("/api/save", methods=["POST"])
@@ -78,6 +91,9 @@ def api_save():
 
 @app.route("/")
 def index():
+    """Serve frontend; on Vercel, / is usually served from public/ so this may not be hit."""
+    if not os.path.isdir(FRONTEND_DIR):
+        return jsonify({"error": "Frontend not found", "FRONTEND_DIR": FRONTEND_DIR}), 404
     return send_from_directory(FRONTEND_DIR, "index.html")
 
 
@@ -85,6 +101,8 @@ def index():
 def frontend_static(path):
     """Serve frontend static files; do not match /api/*."""
     if path.startswith("api/"):
+        return jsonify({"error": "Not found"}), 404
+    if not os.path.isdir(FRONTEND_DIR):
         return jsonify({"error": "Not found"}), 404
     return send_from_directory(FRONTEND_DIR, path)
 

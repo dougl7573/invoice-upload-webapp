@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Upload Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Invoice Upload Tool</h1>
+      <p class="subtitle">Upload a PDF invoice to extract data and save to Airtable.</p>
+    </header>
+
+    <section class="upload-section">
+      <label class="file-label">
+        <input type="file" id="fileInput" accept=".pdf" />
+        <span class="file-button">Choose PDF</span>
+        <span id="fileName" class="file-name"></span>
+      </label>
+      <button type="button" id="processBtn" disabled>Process Invoice</button>
+    </section>
+
+    <div id="loading" class="loading hidden">Processing…</div>
+    <div id="error" class="error hidden"></div>
+
+    <section id="resultsSection" class="results-section hidden">
+      <h2>Extracted Data</h2>
+      <p class="hint">Edit any field before saving.</p>
+      <div class="form-grid">
+        <label>Invoice Number <input type="text" id="invoiceNumber" /></label>
+        <label>Vendor <input type="text" id="vendor" /></label>
+        <label>Invoice Date <input type="text" id="invoiceDate" /></label>
+        <label>Due Date <input type="text" id="dueDate" /></label>
+        <label>Amount <input type="text" id="amount" readonly /></label>
+      </div>
+      <div id="lineItems" class="line-items"></div>
+      <button type="button" id="saveBtn">Save to Airtable</button>
+      <div id="saveStatus" class="save-status"></div>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

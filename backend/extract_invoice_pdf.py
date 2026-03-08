@@ -8,6 +8,7 @@ import sys
 
 
 def extract_invoice_from_pdf(pdf_path: str) -> dict:
+    import pdfplumber
     with pdfplumber.open(pdf_path) as pdf:
         full_text = ""
         all_tables = []
@@ -175,5 +176,4 @@ def _parse_num(s) -> float:
         return 0.0
 
 
-# Lazy import so we don't require pdfplumber at module load (allows tests)
-import pdfplumber  # noqa: E402
+# pdfplumber is imported inside extract_invoice_from_pdf() to avoid loading on cold start (Vercel serverless)
