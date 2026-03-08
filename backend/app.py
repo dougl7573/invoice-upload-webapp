@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 Flask backend for Invoice Upload Web App (Lesson 2.4).
-- POST /api/process: accept PDF, return extracted invoice JSON
-- POST /api/save: accept invoice JSON, transform and save to Airtable
-- GET /api/health: health check (for Vercel serverless)
-- GET /: serve frontend (or rely on Vercel public/ for static)
+All imports and app creation wrapped in try/except so Vercel crashes return the real error.
 """
+import json
 import os
 import sys
 import tempfile
@@ -18,12 +16,13 @@ try:
 except Exception:
     pass
 
-from flask import Flask, jsonify, request, send_from_directory
-
-# Defer heavy imports to avoid serverless cold-start crash; import inside route handlers
 _app_error = None
+_app_traceback = None
+
 try:
+    from flask import Flask, jsonify, request, send_from_directory
     from flask_cors import CORS
+
     app = Flask(__name__, static_folder=None)
     CORS(app)
 
@@ -93,20 +92,25 @@ try:
 except Exception as e:
     _app_error = e
     _app_traceback = traceback.format_exc()
-    app = Flask(__name__)
-    app.config["APPLICATION_ERROR"] = str(e)
-    app.config["APPLICATION_TRACEBACK"] = _app_traceback
 
-    @app.route("/", defaults={"path": ""})
-    @app.route("/<path:path>")
-    def _error_handler(path):
-        return jsonify({
+    # Fallback: minimal WSGI app that returns the error (no Flask dependency)
+    def app(environ, start_response):
+        body = json.dumps({
             "error": "App failed to start",
             "message": str(_app_error),
             "traceback": _app_traceback,
-        }), 500
+        }, indent=2).encode("utf-8")
+        start_response("500 Internal Server Error", [
+            ("Content-Type", "application/json; charset=utf-8"),
+            ("Content-Length", str(len(body))),
+        ])
+        return [body]
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    if hasattr(app, "run"):
+        app.run(host="0.0.0.0", port=port, debug=True)
+    else:
+        from wsgiref.simple_server import make_server
+        make_server("0.0.0.0", port, app).serve_forever()
