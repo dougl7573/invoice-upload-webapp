@@ -45,7 +45,7 @@ try:
         if not file.filename.lower().endswith(".pdf"):
             return jsonify({"error": "File must be a PDF"}), 400
         try:
-            from extract_invoice_pdf import extract_invoice_from_pdf
+            from backend.extract_invoice_pdf import extract_invoice_from_pdf
             with tempfile.TemporaryDirectory() as tmpdir:
                 safe_name = os.path.basename(file.filename) or "invoice.pdf"
                 tmp_path = os.path.join(tmpdir, safe_name)
@@ -63,8 +63,8 @@ try:
         if not os.getenv("AIRTABLE_TOKEN") or not os.getenv("AIRTABLE_BASE_ID"):
             return jsonify({"error": "Airtable not configured (AIRTABLE_TOKEN, AIRTABLE_BASE_ID)"}), 500
         try:
-            from transform_invoice import transform_invoice_for_airtable
-            from airtable_client import create_invoice as airtable_create
+            from backend.transform_invoice import transform_invoice_for_airtable
+            from backend.airtable_client import create_invoice as airtable_create
             airtable_data = transform_invoice_for_airtable(data)
             if "Notes" in airtable_data and len(airtable_data.get("Notes", "")) > 100000:
                 airtable_data.pop("Notes", None)
